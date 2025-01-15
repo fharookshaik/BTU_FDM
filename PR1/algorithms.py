@@ -10,6 +10,9 @@ import numpy as np
 from sklearn.utils import check_array
 
 
+def euclidean_distance(point, centroid):
+    return np.sqrt(np.sum((point - centroid) ** 2))
+
 class CustomKMeans:
     def __init__(self, n_clusters=8, max_iter=300, random_state=None):
         """
@@ -23,6 +26,7 @@ class CustomKMeans:
         self.random_state = random_state
         self.cluster_centers_ = None
         self.labels_ = None
+        self.clusters_ = None
 
     def fit(self, X: np.ndarray, y=None):
         """
@@ -40,9 +44,51 @@ class CustomKMeans:
 
         # Calculation of cluster centers:
         self.cluster_centers_ = None  # TODO: Implement your solution here!
+        self.labels_ = None
+
+        #Initial random cluster center selection
+        self.cluster_centers_ = X[np.random.choice(X.shape[0],self.n_clusters,replace=False)]
+
+        for iteration in range(self.max_iter):
+            # Uncomment below line for debug purposes only.
+            # print(f'Iteration {iteration}, Cluster Centers = {self.cluster_centers_}')
+            self.clusters_ = [[] for _ in range(self.n_clusters)]
+            interm_labels = []
+
+            for point in X:
+                distances = [euclidean_distance(point,cluster_center) for cluster_center in self.cluster_centers_]
+                cluster_index = np.argmin(distances)
+                self.clusters_[cluster_index].append(point)
+                interm_labels.append(cluster_index)
+            
+                # Uncomment below lines for debug purposes only.
+                # print(f'Point = {point}, distances = {distances}, cluster_index = {cluster_index}')
+            # print(f'clusters = {self.clusters_}')
+
+            new_cluster_centers = []
+            for cluster in self.clusters_:
+                if cluster:
+                    new_cluster_center = np.mean(cluster,axis=0)
+                    new_cluster_centers.append(new_cluster_center)
+                else:
+                    new_cluster_centers.append(self.cluster_centers_(new_cluster_centers))
+            
+            
+            new_cluster_centers = np.array(new_cluster_centers) # Converted to np array to compare the new and old cluster centers
+
+            if np.allclose(self.cluster_centers_, new_cluster_centers):
+                # Uncomment below line for debug purposes only.
+                # print(f'Converged after {iteration + 1} iterations')
+                break
+
+            self.cluster_centers_ = new_cluster_centers
+            self.labels_ = interm_labels
+        
+        self.clusters_ = [np.array(cluster) for cluster in self.clusters_]
 
         # Determination of labels:
-        self.labels_ = None  # TODO: Implement your solution here!
+        # self.labels_ = None  # TODO: Implement your solution here!
+        self.labels_ = np.array(self.labels_)
 
         return self
 
