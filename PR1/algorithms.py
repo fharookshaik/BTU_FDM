@@ -8,7 +8,6 @@
 
 import numpy as np
 from sklearn.utils import check_array
-from collections import Counter
 
 
 def calculate_distance(point1, point2, metric="euclidean"):
