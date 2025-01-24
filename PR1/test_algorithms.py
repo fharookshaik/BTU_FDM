@@ -131,8 +131,19 @@ class CustomDBSCAN:
         # Input validation:
         X = check_array(X, accept_sparse='csr')
 
+        """
+            Notes:
+            -------
+            label info
+
+            0 - Unvisited Point
+            -1 - Noise Point
+            n - assigned to cluster 'n'
+        """
+
         # Determination of labels:
         self.labels_ = None  # TODO: Implement your solution here!
+        self.labels_ = [0] * X.shape[0] 
 
         return self
 
