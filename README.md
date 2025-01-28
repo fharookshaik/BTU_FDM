@@ -1,2 +1,2 @@
 # BTU_FDM
-Foundations of Data Mining Assignment Repositry
+Foundations of Data Mining Assignment Repository
