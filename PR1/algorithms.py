@@ -11,38 +11,66 @@ from sklearn.utils import check_array
 
 
 def calculate_distance(point1, point2, metric="euclidean"):
-    """calculate_distance
+    """Calculates the distance betwwen two points using the specified metric.
 
     Args:
-        point1 (_type_): _description_
-        point2 (_type_): _description_
-        metric (str, optional): _description_. Defaults to "euclidean". Acceptable: euclidean, manhattan
+        point1 : Coordinates of point 1
+        point2 : Coordinates of point 2
+        metric (str, optional): Distance metric to use. Options are:
+            - "euclidean" (default)
+            - "manhattan
+            - "chebyshev"
+
+    Raises:
+        ValueError: If an unsupported metric is specified.
+
+    Returns:
+        float: Returns the calculated distance between point1 and point2
     """
-    if metric == 'euclidean':
-        return np.sqrt(np.sum((point1 - point2) ** 2))
-    elif metric == 'manhattan':
-        return np.sum(np.abs(point1 - point2))
-    else:
-        raise ValueError(f'Unsupported metric: {metric}. Acceptable values = euclidean, manhattan')
-
-
-# def euclidean_distance(point, centroid):
-#     return np.sqrt(np.sum((point - centroid) ** 2))
+    match metric:
+        case "euclidean":
+            return np.sqrt(np.sum((point1 - point2) ** 2))
+        case "manhattan":
+            return np.sum(np.abs(point1 - point2))
+        case "chebyshev":
+            return max(abs(a - b) for a,b in zip(point1, point2))
+        case _:
+            raise ValueError(f'Unsupported metric {metric}. Acceptable metrics = euclidean, manhattan, chebyshev')
 
 
 class KDTreeNode:
     def __init__(self, index, left=None, right=None):
+        """
+        Represents a single node in a KD-Tree.
+        
+        :param index: Index of the data point this node represents.
+        :param left: Left child node (KDTreeNode).
+        :param right: Right child node (KDTreeNode).
+        """
         self.index = index
         self.left = left
         self.right = right
 
 class KDTree:
     def __init__(self, data, metric='euclidean'):
+        """
+        A k-dimensional tree (KD-Tree) for efficient nearest neighbor searches.
+        
+        :param data: Input data points as a NumPy array.
+        :param metric: Distance metric to use ('euclidean' by default).
+        """
         self.data = data
         self.root = self._build_tree(indices=np.arange(len(data)), depth=0)
         self.metric = metric
 
     def _build_tree(self, indices, depth):
+        """
+        Recursively builds the KD-Tree.
+        
+        :param indices: Indices of the data points to include in the tree.
+        :param depth: Depth of the current recursion in the tree.
+        :return: Root node of the KD-Tree (KDTreeNode).
+        """
         if len(indices) == 0:
             return None
 
@@ -62,12 +90,28 @@ class KDTree:
         )
     
     def query_radius(self, index, radius):
+        """
+        Finds all points within a given radius of a target point.
+        
+        :param index: Index of the target point.
+        :param radius: Radius for neighbor search.
+        :return: List of indices of points within the radius.
+        """
         results = []
         point = self.data[index]
         self._query_radius(node=self.root, point=point, radius=radius, depth=0, results=results)
         return results
 
     def _query_radius(self, node, point, radius, depth, results):
+        """
+        Recursively searches the KD-Tree for points within a radius.
+        
+        :param node: Current node in the tree.
+        :param point: Target point.
+        :param radius: Search radius.
+        :param depth: Current depth in the tree.
+        :param results: List to store results (indices).
+        """
         if node is None:
             return
 
@@ -129,6 +173,7 @@ class CustomKMeans:
             self.clusters_ = [[] for _ in range(self.n_clusters)]
             interm_labels = []
 
+            # Assign points to the nearest cluster.
             for point in X:
                 distances = [calculate_distance(point,cluster_center,metric='euclidean') for cluster_center in self.cluster_centers_]
                 cluster_index = np.argmin(distances)
@@ -139,6 +184,7 @@ class CustomKMeans:
                 # print(f'Point = {point}, distances = {distances}, cluster_index = {cluster_index}')
             # print(f'clusters = {self.clusters_}')
 
+            # Recalculate cluster centers.
             new_cluster_centers = []
             for cluster in self.clusters_:
                 if cluster:
@@ -150,9 +196,8 @@ class CustomKMeans:
             
             new_cluster_centers = np.array(new_cluster_centers) # Converted to np array to compare the new and old cluster centers
 
+            # Check for Convergence. If converged, stop running.
             if np.allclose(self.cluster_centers_, new_cluster_centers):
-                # Uncomment below line for debug purposes only.
-                # print(f'Converged after {iteration + 1} iterations')
                 break
 
             self.cluster_centers_ = new_cluster_centers
@@ -239,21 +284,31 @@ class CustomDBSCAN:
     
 
     def _region_query(self, X, point_idx):
+        """
+        Finds neighbors of a point using brute force.
+        
+        :param X: Input data points as a NumPy array.
+        :param point_idx: Index of the target point.
+        :return: List of indices of neighboring points.
+        """
         neighbours = []
         for idx, point in enumerate(X):
             if calculate_distance(point1=X[point_idx], point2=point, metric=self.metric) <= self.eps:
                 neighbours.append(idx)
 
-        # if self.use_kdtree:
-        #     neighbours = kdtree.query_radius(index=point_idx, radius=self.eps)
-        # else:
-        #     for idx, point in enumerate(X):
-        #         if calculate_distance(point1=X[point_idx], point2=point, metric=self.metric) <= self.eps:
-        #             neighbours.append(idx)
-        
         return neighbours
 
     def _expand_cluster(self, X, point_idx, cluster_id, neighbours, visited, kdtree):
+        """
+        Expands a cluster by adding density-reachable points.
+        
+        :param X: Input data points as a NumPy array.
+        :param point_idx: Index of the core point.
+        :param cluster_id: ID of the current cluster.
+        :param neighbours: List of indices of neighbors of the core point.
+        :param visited: Boolean array to track visited points.
+        :param kdtree: KD-Tree object for neighbor search (optional).
+        """
         self.labels_[point_idx] = cluster_id
 
         i = 0
